@@ -44,7 +44,8 @@ class UploadsController < ApplicationController
     permitted_params = params.permit(:file_id, :user_id)
     is_logged_in_user = logged_in_user.id.to_s == permitted_params[:user_id].to_s
     if is_logged_in_user
-      file = logged_in_user.uploads.find_by(id: permitted_params[:file_id])
+      file_id = permitted_params[:file_id]
+      file = logged_in_user.uploads.find_by(id: file_id)
       uploads_dir = Rails.root.join("public", "uploads").to_s
       safe_file_path = File.join(uploads_dir, File.basename(file.file_path))
       if file.present? && File.exist?(file.file_path)
