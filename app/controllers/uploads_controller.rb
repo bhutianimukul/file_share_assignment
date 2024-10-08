@@ -81,7 +81,7 @@ class UploadsController < ApplicationController
     user_id = params[:user_id]
     @file_owner = User.find_by(id: user_id)
     if @file_owner
-      @file = @file_owner.uploads&.find_by(id: params[:file_id])
+      @file = @file_owner&.uploads&.find_by(id: params[:file_id])
       is_owner = is_logged_in? ? (logged_in_user.id.to_s == user_id.to_s) : false
       file_path = @file.file_path
       if @file && File.exist?(file_path) && (@file.is_public || is_owner)
