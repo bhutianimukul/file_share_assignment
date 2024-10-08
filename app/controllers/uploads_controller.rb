@@ -21,7 +21,7 @@ class UploadsController < ApplicationController
     @files = logged_in_user.uploads.order(created_at: :desc)
     respond_to do |format|
       format.html
-      format.json  { render json: { files: @files } }
+      format.json { render json: { files: @files } }
     end
   end
 
@@ -81,17 +81,14 @@ class UploadsController < ApplicationController
     user_id = params[:user_id]
     @file_owner = User.find_by(id: user_id)
     if @file_owner
-      @file = @file_owner&.uploads&.find_by(id: params[:file_id])
-      is_owner = is_logged_in? ? (logged_in_user.id.to_s == user_id.to_s) : false
+      @file = @file_owner.uploads.find_by(id: params[:file_id])
       file_path = @file.file_path
-      if @file.present? && File.exist?(file_path) && (@file.is_public || is_owner)
-        safe_filename = File.basename(file_path)
-        send_file file_path,
-          filename: safe_filename,
-          disposition: "attachment"
+
+      if @file.present? && File.exist?(file_path) && (@file.is_public == true)
+        send_file_securely @file
       else
         flash[:alert] = "File not found"
-        render json: { error: "File not found" }, status: :bad_request
+        render json: { error: "File not found.... Only Public files can be downloaded" }, status: :bad_request
       end
     else
       flash[:alert] = "Not a logged in user"
@@ -129,5 +126,15 @@ class UploadsController < ApplicationController
     else
       "#{(size_in_bytes / (1024.0 * 1024.0)).round(2)} MB"
     end
+  end
+
+  def send_file_securely(file)
+    original_filename = File.basename(file.file_path)
+    extension = File.extname(original_filename)
+    safe_filename = "#{SecureRandom.hex(8)}#{extension}"
+
+    send_data File.read(file.file_path),
+      filename: safe_filename,
+      disposition: "attachment"
   end
 end

@@ -18,7 +18,9 @@
             <td><%= file.created_at.strftime("%d %B %Y") %></td>
             <td><%= file.size %></td>
             <td>
-              <%= link_to 'Download', user_download_option_path(user_id: logged_in_user.id, file_id: file.id), method: :post, class: 'btn btn-primary btn-sm' %>
+                <% if file.is_public %>
+                <%= link_to 'Download', user_download_option_path(user_id: logged_in_user.id, file_id: file.id), method: :post, class: 'btn btn-primary btn-sm' %>
+                <% end %>
               <%= button_to 'Delete', user_file_delete_path(user_id: logged_in_user.id, file_id: file.id), 
                method: :delete, 
                onclick: "return confirm('Are you sure you want to delete this file?') ? true : false;",
