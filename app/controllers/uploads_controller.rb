@@ -41,9 +41,10 @@ class UploadsController < ApplicationController
   end
 
   def destroy
-    is_logged_in_user = logged_in_user.id.to_s == params[:user_id].to_s
+    permitted_params = params.permit(:file_id, :user_id)
+    is_logged_in_user = logged_in_user.id.to_s == permitted_params[:user_id].to_s
     if is_logged_in_user
-      file = logged_in_user.uploads.find_by(id: params[:file_id])
+      file = logged_in_user.uploads.find_by(id: permitted_params[:file_id])
       if file.present? && File.exist?(file.file_path)
         File.delete(file.file_path)
         file.destroy
