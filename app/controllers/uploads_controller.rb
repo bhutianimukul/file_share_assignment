@@ -46,7 +46,7 @@ class UploadsController < ApplicationController
     if is_logged_in_user
       file_id = permitted_params[:file_id]
       file = logged_in_user.uploads.find_by!(id: file_id)
-      if delete_file(file)
+      if delete_file file
         file.destroy
         redirect_to "/"
       else
@@ -149,11 +149,8 @@ class UploadsController < ApplicationController
   end
 
   def delete_file(file)
-    uploads_dir = Rails.root.join("public", "uploads")
-    file_name = File.basename(file.file_path)
-    safe_file_path = uploads_dir.join(file_name)
-    if File.exist?(safe_file_path)
-      File.delete(safe_file_path)
+    if File.exist?(file.file_path)
+      File.delete(file.file_path)
       true
     else
       false
