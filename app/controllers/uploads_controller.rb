@@ -63,8 +63,9 @@ class UploadsController < ApplicationController
     @file_owner = User.find_by(id: user_id)
     if @file_owner
       @file = @file_owner.uploads.find_by(id: params[:file_id])
-      if @file && @file.is_public
+      if @file.present? && File.exist?(@file.file_path) && @file.is_public == true
         @relative_file_path = @file.file_path.sub(Rails.root.join("public").to_s, "")
+        @file_content = read_file_content(@file) if @file.content_type == "text/plain"
         respond_to do |format|
           format.html
           format.json { render json: { file: @file } }
@@ -126,6 +127,14 @@ class UploadsController < ApplicationController
     else
       "#{(size_in_bytes / (1024.0 * 1024.0)).round(2)} MB"
     end
+  end
+
+  def read_file_content(file)
+    return nil unless file.content_type == "text/plain"
+    File.read(file.file_path)
+  rescue StandardError => e
+    Rails.logger.error "Error reading file: #{e.message}"
+    "Error reading file content"
   end
 
   def send_file_securely(file)
