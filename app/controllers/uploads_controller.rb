@@ -44,7 +44,7 @@ class UploadsController < ApplicationController
     is_logged_in_user = logged_in_user.id.to_s == params[:user_id].to_s
     if is_logged_in_user
       file = logged_in_user.uploads.find_by(id: params[:file_id])
-      if file
+      if file.present? && File.exist?(file.file_path)
         File.delete(file.file_path)
         file.destroy
         redirect_to "/"
