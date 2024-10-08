@@ -6,7 +6,7 @@ class User < ApplicationRecord
   validates :email, format: { with: URI::MailTo::EMAIL_REGEXP }, presence: true
   validates :password, presence: true, length: { minimum: 8 }, on: :create
   validates :password, format: {
-                         with: /(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).*/,
+                         with: /\A(?=.*\d)(?=.*[a-z])(?=.*[A-Z]).*\z/,
                          message: "Password must contain atleast one uppercase, lowercase and number"
                        }, on: :create
   private

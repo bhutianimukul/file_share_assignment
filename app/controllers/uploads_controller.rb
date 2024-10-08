@@ -83,9 +83,10 @@ class UploadsController < ApplicationController
     if @file_owner
       @file = @file_owner.uploads.find_by(id: params[:file_id])
       is_owner = is_logged_in? ? (logged_in_user.id.to_s == user_id.to_s) : false
-      if @file && @file.is_public || is_owner
-        send_file @file.file_path,
-          filename: File.basename(@file.file_path),
+      file_path = @file.file_path
+      if @file && File.exist?(file_path) && (@file.is_public || is_owner)
+        send_file file_path,
+          filename: File.basename(file_path),
           disposition: "attachment"
       else
         flash[:alert] = "File not found"
