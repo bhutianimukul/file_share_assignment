@@ -53,17 +53,14 @@ class UploadsController < ApplicationController
         file.destroy
         redirect_to "/"
       else
-        flash[:alert] = "File not found"
         render json: { error: "File not found" }, status: :bad_request
       end
     else
-      flash[:alert] = "Not a logged in user"
       render json: { error: "Not logged in user" }, status: :bad_request
     end
   rescue ActiveRecord::RecordNotFound
     render json: { error: "File not found" }, status: :not_found
   end
-end
 
   def show
     user_id = params[:user_id]
