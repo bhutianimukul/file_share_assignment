@@ -12,14 +12,14 @@ class SessionsController < ApplicationController
       (raise StandardError, "Invalid username/password") unless @user.authenticate(user_params[:password])
       session[:user_id] = @user.id
       format.html { redirect_to "/", notice: "Logged in successfully." }
-      format.json { render json: { message: "Logged in successfully.", username: @user.username }, status: :ok }
+      format.json { render json: { message: "Logged in successfully.", username: @user.username, id: @user.id }, status: :ok }
     end
   rescue ActiveRecord::RecordNotFound => e
-    handle_signin_error(e.message, :bad_request)
+    handle_error(e.message, :bad_request, "/signin")
   rescue ActionController::ParameterMissing => e
-    handle_signin_error(e.message, :bad_request)
+    handle_error(e.message, :bad_request, "/signin")
   rescue StandardError => e
-    handle_signin_error(e.message, :unauthorized)
+    handle_error(e.message, :unauthorized, "/signin")
   end
 
   def destroy
@@ -30,21 +30,10 @@ class SessionsController < ApplicationController
       format.json { render json: { message: "Success" }, status: :ok }
     end
   rescue ActiveRecord::RecordNotFound => e
-    handle_signin_error(e.message, :bad_request)
+    handle_error(e.message, :bad_request)
   end
 
   private
-
-  def handle_signin_error(error_message, status)
-    respond_to do |format|
-      format.html do
-        flash[:alert] = error_message
-        redirect_to "/signin"
-      end
-      format.json { render json: { error: error_message }, status: status }
-    end
-  end
-
   def user_params
     params.require(:user).permit(:password, :username)
   end

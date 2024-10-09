@@ -6,14 +6,29 @@ class UploadsController < ApplicationController
   end
 
   def create
-    uploaded_file = file_params[:file]
-    file_path, file_name, file_size, content_type = Upload.save_locally(uploaded_file, logged_in_user.id.to_s)
-    @upload = logged_in_user.uploads.new({ name: file_name, file_path: file_path, size: file_size, is_public: file_params[:is_public], content_type: content_type })
-    if @upload.save
-      redirect_to "/"
-    else
-      flash[:alert] = "Unable to upload"
-      redirect_to "/upload"
+    begin
+      uploaded_file = file_params[:file]
+      (raise ActiveRecord::ParameterMissing, "Upload file") if uploaded_file.blank?
+      file_path, file_name, file_size, content_type = Upload.save_locally(uploaded_file, logged_in_user.id.to_s)
+      @upload = logged_in_user.uploads.new({
+        name: file_name,
+        file_path: file_path,
+        size: file_size,
+        is_public: file_params[:is_public].nil? ? false : file_params[:is_public],
+        content_type: content_type
+      })
+      respond_to do |format|
+        if @upload.save
+          format.html { redirect_to "/", notice: "File uploaded successfully." }
+          format.json { render json: { message: "File uploaded successfully.", upload: @upload }, status: :created }
+        else raise StandardError, "Unable to upload file"         end
+      end
+    rescue ActionController::ParameterMissing => e
+      handle_error(e.message, :bad_request)
+    rescue ActiveRecord::RecordNotFound => e
+      handle_error(e.message, :bad_request)
+    rescue StandardError => e
+      handle_error(e.message, :unprocessable_entity)
     end
   end
 
@@ -26,43 +41,51 @@ class UploadsController < ApplicationController
   end
 
   def update
-    puts "Inside File update"
-    file = logged_in_user.uploads.find_by(id: params[:file_id])
-    if file
-      is_public = file_params[:is_public_updated].to_i == 1 ? true : false
-      file.update(is_public: is_public)
-      respond_to do |format|
-        format.html { redirect_to "/", notice: "File visibility updated successfully." }
-        format.json { render json: { status: "Success" } }
-      end
-    else
-      render json: { error: "File Not found" }, status: :bad_request
+    begin
+      (raise ActionController::ParameterMissing, "fileId and is_public_updated are required.") if file_params[:is_public_updated].blank? || params[:file_id].blank?
+      file = logged_in_user.uploads.find_by(id: params[:file_id])
+      if file
+        is_public = file_params[:is_public_updated].to_i == 1 ? true : false
+        file.update(is_public: is_public)
+        respond_to do |format|
+          format.html { redirect_to "/", notice: "File visibility updated successfully." }
+          format.json { render json: { status: "Success" } }
+        end
+      else raise ActiveRecord::RecordNotFound, "File not found"       end
     end
+  rescue ActiveRecord::RecordNotFound => e
+    handle_error(e.message, :bad_request)
+  rescue ActionController::ParameterMissing => e
+    handle_error(e.message, :bad_request)
+  rescue StandardError => e
+    handle_error(e.message, :unauthorized)
   end
 
   def destroy
-    permitted_params = params.permit(:file_id, :user_id)
-    is_logged_in_user = logged_in_user.id.to_s == permitted_params[:user_id].to_s
-    if is_logged_in_user
-      file_id = permitted_params[:file_id]
-      file = logged_in_user.uploads.find_by!(id: file_id)
-      if file.delete_upload
-        file.destroy
-        redirect_to "/"
-      else
-        render json: { error: "File not found" }, status: :bad_request
-      end
-    else
-      render json: { error: "Not logged in user" }, status: :bad_request
+    permitted_params = params.permit(:file_id)
+    (raise ActionController::ParameterMissing, "fileId is required.") if permitted_params[:file_id].blank?
+    file_id = permitted_params[:file_id]
+    file = logged_in_user.uploads.find_by!(id: file_id)
+    (raise ActiveRecord::RecordNotFound, "Unable to delete") unless file.delete_upload
+    respond_to do |format|
+      file.destroy
+      format.html { redirect_to "/", notice: "File visibility updated successfully." }
+      format.json { render json: { status: "Success" } }
     end
-  rescue ActiveRecord::RecordNotFound
-    render json: { error: "File not found" }, status: :not_found
+  rescue ActiveRecord::RecordNotFound => e
+    handle_error(e.message, :bad_request)
+  rescue ActionController::ParameterMissing => e
+    handle_error(e.message, :bad_request)
+  rescue StandardError => e
+    handle_error(e.message, :unauthorized)
   end
 
   def show
-    user_id = params[:user_id]
-    @file_owner = User.find_by(id: user_id)
-    if @file_owner
+    begin
+      user_id = params[:user_id]
+      (raise ActionController::ParameterMissing, "UserId and fileId are required.") if params[:file_id].blank? || params[:user_id].blank?
+      @file_owner = User.find_by(id: user_id)
+      (raise StandardError, "Not able to access file") unless @file_owner
       @file = @file_owner.uploads.find_by(id: params[:file_id])
       if @file.present? && File.exist?(@file.file_path) && @file.is_public == true
         @relative_file_path = @file.file_path.sub(Rails.root.join("public").to_s, "")
@@ -71,31 +94,34 @@ class UploadsController < ApplicationController
           format.html
           format.json { render json: { file: @file } }
         end
-      else
-        render json: { error: "File not found" }, status: :bad_request
-      end
-    else
-      render json: { error: "Invalid Url" }, status: :bad_request
+      else raise ActiveRecord::RecordNotFound, "File not found"       end
     end
+  rescue ActiveRecord::RecordNotFound => e
+    handle_error(e.message, :bad_request)
+  rescue ActionController::ParameterMissing => e
+    handle_error(e.message, :bad_request)
+  rescue StandardError => e
+    handle_error(e.message, :unauthorized)
   end
 
   def download
-    user_id = params[:user_id]
-    @file_owner = User.find_by(id: user_id)
-    if @file_owner
+    begin
+      (raise ActionController::ParameterMissing, "UserId and fileId are required.") if params[:file_id].blank? || params[:user_id].blank?
+      user_id = params[:user_id]
+      @file_owner = User.find_by(id: user_id)
+      (raise StandardError, "Not able to access file") unless @file_owner
       @file = @file_owner.uploads.find_by(id: params[:file_id])
       file_path = @file.file_path
-
       if @file.present? && File.exist?(file_path) && (@file.is_public == true)
         send_upload_securely @file
-      else
-        flash[:alert] = "File not found"
-        render json: { error: "File not found.... Only Public files can be downloaded" }, status: :bad_request
-      end
-    else
-      flash[:alert] = "Not a logged in user"
-      render json: { error: "Not logged in user" }, status: :bad_request
+      else raise ActiveRecord::RecordNotFound, "File not found.... Only Public files can be downloaded"       end
     end
+  rescue ActiveRecord::RecordNotFound => e
+    handle_error(e.message, :bad_request)
+  rescue ActionController::ParameterMissing => e
+    handle_error(e.message, :bad_request)
+  rescue StandardError => e
+    handle_error(e.message, :unauthorized)
   end
 
   private

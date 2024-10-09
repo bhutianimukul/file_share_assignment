@@ -5,24 +5,25 @@ Rails.application.routes.draw do
   # Can be used by load balancers and uptime monitors to verify that the app is live.
   get "up" => "rails/health#show", as: :rails_health_check
   get "signup" => "users#new", as: :signup
-  post "api/register" => "users#create", defaults: { format: :json }
+  post "api/register" => "users#create", defaults: { format: :json }, as: :register
   get "signin" => "sessions#new", as: :login
   post "api/login" => "sessions#create", defaults: { format: :json }
   get "signout" => "sessions#destroy", as: :logout
   delete "api/logout" => "sessions#destroy", defaults: { format: :json }
   get "upload" => "uploads#new", as: :upload_file
-  post "file" => "uploads#create", as: :file, defaults: { format: :json }
+  post "upload/file" => "uploads#create", as: :file
+  post "api/upload/file" => "uploads#create", defaults: { format: :json }
   post "upload" => "uploads#new"
   get "files" => "uploads#index"
   get "api/files" => "uploads#index", defaults: { format: :json }
-  delete "files/delete/:user_id/:file_id" => "uploads#destroy", as: :user_file_delete
-  delete "api/files/delete/:user_id/:file_id" => "uploads#destroy", defaults: { format: :json }
+  delete "files/delete/:file_id" => "uploads#destroy", as: :user_file_delete
+  delete "api/files/delete/:file_id" => "uploads#destroy", defaults: { format: :json }
   post "api/file/download/:user_id/:file_id" => "uploads#download", defaults: { format: :json }
   get "file/download/:user_id/:file_id" => "uploads#download", as: :user_download_option
   get "files/view/:user_id/:file_id" => "uploads#show", as: :user_view
   get "api/files/view/:user_id/:file_id" => "uploads#show", defaults: { format: :json }
   post "files/update/:file_id" => "uploads#update", as: :update_public
-  patch "api/files/update/:file_id" => "uploads#update", defaults: { format: :json }
+  put "api/files/update/:file_id" => "uploads#update", defaults: { format: :json }
 
   resources :users, only: [ :new, :create ]
   resources :sessions, only: [ :new, :create ]

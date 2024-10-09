@@ -36,7 +36,7 @@ class Upload < ApplicationRecord
     file_name = uploaded_file.original_filename
     base_name = File.basename(file_name, ".*")
     extension = File.extname(file_name)
-    timestamp = Time.now.strftime("%Y%m%d%H%M%S")  # Format: YYYYMMDDHHMMSS
+    timestamp = Time.now.strftime("%Y%m%d%H%M%S")
     new_file_name = "#{base_name}_#{timestamp}#{extension}"
     file_path = File.join(save_path, new_file_name)
     File.open(file_path, "wb") do |file|
