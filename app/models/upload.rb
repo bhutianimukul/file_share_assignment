@@ -1,8 +1,9 @@
 class Upload < ApplicationRecord
   belongs_to :user
+  validates :name, uniqueness: true, presence: true
+  validates :file_path, presence: true
 
   def delete_upload
-    puts "Inside delete"
     if File.exist?(self.file_path)
       File.delete(self.file_path)
       true
@@ -12,11 +13,11 @@ class Upload < ApplicationRecord
   end
 
   def read_text_content
-    return nil unless self.content_type == "text/plain"
+    (raise StandardError) unless self.content_type == "text/plain"
     File.read(self.file_path)
   rescue StandardError => e
     Rails.logger.error "Error reading file: #{e.message}"
-    "Error reading file content"
+    "Unable to Preview"
   end
 
   def self.convert_size(size_in_bytes)
