@@ -30,7 +30,7 @@ class SessionsController < ApplicationController
       format.json { render json: { message: "Success" }, status: :ok }
     end
   rescue ActiveRecord::RecordNotFound => e
-    handle_error(e.message, :bad_request)
+    handle_error(e.message, :bad_request, "/signin")
   end
 
   private
