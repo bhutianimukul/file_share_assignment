@@ -69,8 +69,10 @@ class UploadsController < ApplicationController
     file = logged_in_user.uploads.find_by!(id: file_id)
     (raise ActiveRecord::RecordNotFound, "File not found") unless File.exist?(file.file_path)
     respond_to do |format|
-      file.destroy!
-      (raise ActiveRecord::RecordNotFound, "Unable to delete") unless file.delete_upload
+      ActiveRecord::Base.transaction do
+        file.destroy!
+        raise ActiveRecord::RecordNotFound, "Unable to delete" unless file.delete_upload
+      end
       format.html { redirect_to "/", notice: "File deleted successfully." }
       format.json { render json: { status: "Success" } }
       end
