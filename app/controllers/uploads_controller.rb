@@ -62,15 +62,18 @@ class UploadsController < ApplicationController
   end
 
   def destroy
+    begin
     permitted_params = params.permit(:file_id)
     (raise ActionController::ParameterMissing, "fileId is required.") if permitted_params[:file_id].blank?
     file_id = permitted_params[:file_id]
     file = logged_in_user.uploads.find_by!(id: file_id)
-    (raise ActiveRecord::RecordNotFound, "Unable to delete") unless file.delete_upload
+    (raise ActiveRecord::RecordNotFound, "File not found") unless File.exist?(file.file_path)
     respond_to do |format|
-      file.destroy
-      format.html { redirect_to "/", notice: "File visibility updated successfully." }
+      file.destroy!
+      (raise ActiveRecord::RecordNotFound, "Unable to delete") unless file.delete_upload
+      format.html { redirect_to "/", notice: "File deleted successfully." }
       format.json { render json: { status: "Success" } }
+      end
     end
   rescue ActiveRecord::RecordNotFound => e
     handle_error(e.message, :bad_request)
